@@ -1,1 +1,1 @@
-web: webpack && gunicorn experiment_server.app:app
+web: gunicorn experiment_server.app:app
