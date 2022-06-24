@@ -189,6 +189,9 @@ async function restartBoth() {
 }
 
 async function select(side) {
+  if (startTime === null) {
+    return;
+  }
   stopTime = Date.now();
   post('/submit_answer', JSON.stringify({
     id: question.id,
@@ -198,6 +201,7 @@ async function select(side) {
   }));
   questionStarted = false;
   usedQuestions.push(question.id);
+  question = await requestRandomQuestion({ excludeIds: usedQuestions });
   await parseQuestion();
 }
 async function selectLeft() {
