@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "webpack",
-    "deploy": ". ./SECRETS.sh && python -m flask run"
+    "deploy": ". experiment_server/SECRETS.sh && gunicorn experiment_server.app:app"
   },
   "author": "",
   "license": "ISC",
