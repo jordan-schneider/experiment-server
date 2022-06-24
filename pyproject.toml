@@ -28,7 +28,7 @@ test = [
 ]
 
 [project.urls]
-repository = "https://github.com/jordan-schneider/web-procgen"
+repository = "https://github.com/jordan-schneider/experiment_server"
 
 [build-system]
 requires = ["setuptools"]
