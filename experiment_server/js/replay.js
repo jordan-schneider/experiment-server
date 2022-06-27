@@ -7,6 +7,7 @@ const usedQuestions = [];
 let startTime = null;
 let stopTime = null;
 let questionStarted = false;
+let answers = [];
 
 function parseOpts() {
   try {
@@ -98,12 +99,7 @@ function checkStep(state) {
   }
 }
 
-async function main() {
-  const opts = parseOpts();
-
-  const questionName = opts.questionName;
-  delete opts.questionName;
-
+async function setupGames(opts) {
   const leftGame = await CheerpGame.init({
     ...CheerpGame.defaultOpts(),
     ...opts,
@@ -116,6 +112,20 @@ async function main() {
   games.push(leftGame, rightGame);
   document.getElementById('leftGame').appendChild(leftGame.getCanvas());
   document.getElementById('rightGame').appendChild(rightGame.getCanvas());
+}
+
+async function submitAnswers() {
+  post('/submit_answers', json.Stringify(answers));
+  answers = [];
+}
+
+async function main() {
+  const opts = parseOpts();
+
+  const questionName = opts.questionName;
+  delete opts.questionName;
+
+  await setupGames(opts);
 
   if (questionName !== undefined) {
     question = await requestQuestionByName(questionName);
@@ -124,6 +134,8 @@ async function main() {
     question = await requestRandomQuestion({ excludeIds: usedQuestions });
     await parseQuestion();
   }
+
+  addEventListener('visibilitychange', event => document.visibilityState === 'hidden' ? submitAnswers() : null);
 
   setInterval(() => {
     checkStep(gameStates[0]);
@@ -193,12 +205,12 @@ async function select(side) {
     return;
   }
   stopTime = Date.now();
-  post('/submit_answer', JSON.stringify({
+  answers.push({
     id: question.id,
     answer: side,
-    startTime,
-    stopTime,
-  }));
+    startTime: startTime,
+    stopTime: stopTime,
+  });
   questionStarted = false;
   usedQuestions.push(question.id);
   question = await requestRandomQuestion({ excludeIds: usedQuestions });

@@ -1,22 +1,16 @@
 import logging
 import os
-import sqlite3
 from logging.config import dictConfig
-from pathlib import Path
 from typing import Tuple
 
 import arrow
-import boto3  # type: ignore
 import numpy as np
 from flask import Flask, g, jsonify, render_template, request
+from remote_sqlite import RemoteSqlite  # type: ignore
 
-from experiment_server.query import (
-    get_named_question,
-    get_random_question,
-    insert_answer,
-    insert_question,
-    insert_traj,
-)
+from experiment_server.query import (get_named_question, get_random_question,
+                                     insert_answers, insert_question,
+                                     insert_traj)
 from experiment_server.serialize import serialize
 from experiment_server.type import Answer, State, Trajectory, assure_modality
 
@@ -40,21 +34,14 @@ dictConfig(
 )
 
 app = Flask(__name__, static_url_path="/assets")
-DATABASE_PATH = os.environ["DATABASE_PATH"]
 app.secret_key = os.environ["SECRET_KEY"]
 
 
-s3 = boto3.client("s3")
-
-
-def get_db():
+def get_db() -> RemoteSqlite:
     db = getattr(g, "_database", None)
     if db is None:
-        logging.debug(f"Local database expected at {DATABASE_PATH}")
-        if not Path(DATABASE_PATH).exists():
-            logging.info("Downloading database from Amazon S3")
-            s3.download_file("mrl-experiment-sqlite", "experiments.db", DATABASE_PATH)
-        db = g._database = sqlite3.connect(DATABASE_PATH)
+        db = RemoteSqlite("s3://mrl-experiment-sqlite/experiments.db")
+        g._database = db
     return db
 
 
@@ -73,25 +60,35 @@ def record():
     return render_template("record.html")
 
 
-@app.route("/submit_answer", methods=["POST"])
-def submit_answer():
+@app.route("/submit_answers", methods=["POST"])
+def submit_answers():
     if request.method != "POST":
         return jsonify({"error": "Method not allowed"}), 405
     json = request.get_json()
     assert json is not None
 
-    id = insert_answer(
-        get_db(),
+    logging.debug(f"Received answers: {json}")
+
+    answers = [
         Answer(
             user_id=0,
-            question_id=json["id"],
-            answer=json["answer"] == "right",
-            start_time=arrow.get(json["startTime"]).isoformat(),
-            end_time=arrow.get(json["stopTime"]).isoformat(),
-        ),
-    )
+            question_id=j["id"],
+            answer=j["answer"] == "right",
+            start_time=arrow.get(j["startTime"]).isoformat(),
+            end_time=arrow.get(j["stopTime"]).isoformat(),
+        )
+        for j in json
+    ]
 
-    return jsonify({"success": True, "answer_id": id})
+    db = get_db()
+    db.pull()
+    insert_answers(
+        db.con,
+        answers,
+    )
+    db.push()
+
+    return jsonify({"success": True})
 
 
 @app.route("/random_question", methods=["POST"])
@@ -112,10 +109,12 @@ def request_random_question():
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
 
-    conn = get_db()
-
     question = get_random_question(
-        conn, question_type=modality, env=env, length=length, exclude_ids=exclude_ids
+        get_db().con,
+        question_type=modality,
+        env=env,
+        length=length,
+        exclude_ids=exclude_ids,
     )
     return serialize(question)
 
@@ -128,8 +127,7 @@ def request_named_question():
     spec = request.get_json()
     assert spec is not None
 
-    conn = get_db()
-    question = get_named_question(conn=conn, name=spec["name"])
+    question = get_named_question(conn=get_db().con, name=spec["name"])
     return serialize(question)
 
 
@@ -142,9 +140,16 @@ def submit_question():
     traj_ids: Tuple[int, int] = json["traj_ids"]
     label = json["name"]
 
+    db = get_db()
+    db.pull()
     id = insert_question(
-        conn=get_db(), traj_ids=traj_ids, algo="manual", env_name="miner", label=label
+        conn=db.con,
+        traj_ids=traj_ids,
+        algo="manual",
+        env_name="miner",
+        label=label,
     )
+    db.push()
     return jsonify({"success": True, "question_id": id})
 
 
@@ -157,8 +162,10 @@ def submit_trajectory():
 
     json_state = json["start_state"]
 
+    db = get_db()
+    db.pull()
     id = insert_traj(
-        get_db(),
+        db.con,
         Trajectory(
             start_state=State.from_json(json_state),
             actions=np.array(json["actions"]),
@@ -166,6 +173,7 @@ def submit_trajectory():
             modality="traj",
         ),
     )
+    db.push()
 
     return jsonify({"success": True, "trajectory_id": id})
 
@@ -174,8 +182,4 @@ def submit_trajectory():
 def close_connection(exception):
     db = getattr(g, "_database", None)
     if db is not None:
-        db.close()
-    if Path(DATABASE_PATH).exists():
-        logging.info("Uploading database to Amazon S3")
-        # s3.upload_file(DATABASE_PATH, "mrl-experiment-sqlite", "experiments.db")
-        pass
+        db.con.close()

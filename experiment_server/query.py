@@ -150,23 +150,23 @@ FROM
     )
 
 
-def insert_answer(conn: sqlite3.Connection, answer: Answer) -> int:
-    cursor = conn.execute(
+def insert_answers(conn: sqlite3.Connection, answers: Sequence[Answer]) -> None:
+    cursor = conn.executemany(
         """
         INSERT INTO answers (user_id, question_id, answer, start_time, end_time) VALUES (:user_id, :question_id, :answer, :start_time, :end_time)
         """,
-        {
-            "user_id": answer.user_id,
-            "question_id": answer.question_id,
-            "answer": answer.answer,
-            "start_time": answer.start_time,
-            "end_time": answer.end_time,
-        },
+        [
+            {
+                "user_id": answer.user_id,
+                "question_id": answer.question_id,
+                "answer": answer.answer,
+                "start_time": answer.start_time,
+                "end_time": answer.end_time,
+            }
+            for answer in answers
+        ],
     )
-    assert cursor.lastrowid is not None
-    out = int(cursor.lastrowid)
     conn.commit()
-    return out
 
 
 def insert_traj(conn: sqlite3.Connection, traj: Trajectory) -> int:
