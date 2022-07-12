@@ -16,6 +16,7 @@ dependencies = [
     "boto3[crt]",
     "numpy >= 1.21",
     "flask"
+    "remote-sqlite",
 ]
 
 [project.optional-dependencies]
