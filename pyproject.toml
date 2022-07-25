@@ -15,7 +15,7 @@ dependencies = [
     "arrow",
     "boto3[crt]",
     "numpy >= 1.21",
-    "flask"
+    "flask",
     "remote-sqlite",
 ]
 
