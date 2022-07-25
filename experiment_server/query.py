@@ -150,6 +150,21 @@ FROM
     )
 
 
+def get_max_user(conn: sqlite3.Connection) -> int:
+    cursor = conn.execute("SELECT MAX(id) FROM users")
+    max_user_id = next(cursor)[0]
+    if max_user_id is None:
+        max_user_id = 0
+    return max_user_id
+
+
+def get_payment_code(conn: sqlite3.Connection, user_id: int) -> str:
+    cursor = conn.execute(
+        "SELECT payment_code FROM users WHERE id=:user_id", {"user_id": user_id}
+    )
+    return next(cursor)[0]
+
+
 def insert_answers(conn: sqlite3.Connection, answers: Sequence[Answer]) -> None:
     cursor = conn.executemany(
         """
@@ -214,16 +229,47 @@ def insert_question(
 
 
 def create_user(
-    conn: sqlite3.Connection, user_id: int, demographics: Demographics
-) -> None:
-    conn.execute(
-        """
-        INSERT INTO users VALUES (:id, :sequence, :demographics)
-        """,
-        {
-            "id": user_id,
-            "sequence": 0,
-            "demographics": pickle.dumps(demographics),
-        },
-    )
-    conn.commit()
+    conn: sqlite3.Connection,
+    demographics: Demographics,
+    payment_id: str,
+    max_tries: int = 3,
+) -> int:
+    """Creates a new user entry in the database.
+
+    Args:
+        conn (sqlite3.Connection): Connection to the database
+        demographics (Demographics): Demographic information about the user.
+        payment_id (str): Mechanical Turk Payment ID, must be unique.
+        max_tries (int, optional): Number of times to retry inserting the user entry into the db. Defaults to 3.
+
+    Raises:
+        e: sqlite3.DatabaseError
+
+    Returns:
+        int: User ID, which is the database primary key.
+    """
+    user_id = get_max_user(conn) + 1
+    try:
+        conn.execute(
+            """
+            INSERT INTO users VALUES (:id, :sequence, :demographics, :payment_code)
+            """,
+            {
+                "id": user_id,
+                "sequence": 0,
+                "demographics": pickle.dumps(demographics),
+                "payment_code": payment_id,
+            },
+        )
+        conn.commit()
+        return user_id
+    except sqlite3.DataError as e:
+        if max_tries > 0:
+            logging.warning(
+                f"Failed to create user ({user_id=}, {payment_id=}) with {max_tries} tries remaining",
+                exc_info=e,
+            )
+            return create_user(conn, demographics, payment_id, max_tries - 1)
+        else:
+            logging.error(f"Failed to create user ({user_id=}, {payment_id=})")
+            raise e

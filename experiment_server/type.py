@@ -88,4 +88,4 @@ class Answer:
 # TODO: Decide what demographics might be interesting
 @dataclass
 class Demographics:
-    age: int
+    pass

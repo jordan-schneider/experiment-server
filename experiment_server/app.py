@@ -1,18 +1,31 @@
 import logging
 import os
 from logging.config import dictConfig
+from secrets import token_hex
 from typing import Tuple
 
 import arrow
 import numpy as np
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request, session
 from remote_sqlite import RemoteSqlite  # type: ignore
 
-from experiment_server.query import (get_named_question, get_random_question,
-                                     insert_answers, insert_question,
-                                     insert_traj)
+from experiment_server.query import (
+    create_user,
+    get_named_question,
+    get_payment_code,
+    get_random_question,
+    insert_answers,
+    insert_question,
+    insert_traj,
+)
 from experiment_server.serialize import serialize
-from experiment_server.type import Answer, State, Trajectory, assure_modality
+from experiment_server.type import (
+    Answer,
+    Demographics,
+    State,
+    Trajectory,
+    assure_modality,
+)
 
 dictConfig(
     {
@@ -40,14 +53,42 @@ app.secret_key = os.environ["SECRET_KEY"]
 def get_db() -> RemoteSqlite:
     db = getattr(g, "_database", None)
     if db is None:
-        db = RemoteSqlite("s3://mrl-experiment-sqlite/experiments.db")
+        if (db_path := os.environ.get("DATABASE_PATH")) is not None:
+            logging.info("Using local database")
+            db = RemoteSqlite(db_path)
+        else:
+            logging.info("Using s3 database")
+            db = RemoteSqlite("s3://mrl-experiment-sqlite/experiments.db")
         g._database = db
     return db
 
 
+# Pages
+
+
 @app.route("/")
-def index():
+def welcome():
+    payment_id = token_hex(16)
+    db = get_db()
+    db.pull(db.fspath)
+    user_id = create_user(db.con, Demographics(), payment_id)
+    db.push(db.fspath)
+    session["user_id"] = user_id
+    return render_template("welcome.html")
+
+
+@app.route("/replay")
+def replay():
     return render_template("replay.html")
+
+
+@app.route("/goodbye")
+def goodbye():
+    user_id = session["user_id"]
+    session.pop("user_id", None)
+    return render_template(
+        "goodbye.html", payment_code=get_payment_code(get_db().con, user_id)
+    )
 
 
 @app.route("/interact")
@@ -58,6 +99,9 @@ def interact():
 @app.route("/record")
 def record():
     return render_template("record.html")
+
+
+# API
 
 
 @app.route("/submit_answers", methods=["POST"])
@@ -81,12 +125,12 @@ def submit_answers():
     ]
 
     db = get_db()
-    db.pull()
+    db.pull(db.fspath)
     insert_answers(
         db.con,
         answers,
     )
-    db.push()
+    db.push(db.fspath)
 
     return jsonify({"success": True})
 
@@ -141,7 +185,7 @@ def submit_question():
     label = json["name"]
 
     db = get_db()
-    db.pull()
+    db.pull(db.fspath)
     id = insert_question(
         conn=db.con,
         traj_ids=traj_ids,
@@ -149,7 +193,7 @@ def submit_question():
         env_name="miner",
         label=label,
     )
-    db.push()
+    db.push(db.fspath)
     return jsonify({"success": True, "question_id": id})
 
 
@@ -163,7 +207,7 @@ def submit_trajectory():
     json_state = json["start_state"]
 
     db = get_db()
-    db.pull()
+    db.pull(db.fspath)
     id = insert_traj(
         db.con,
         Trajectory(
@@ -173,7 +217,7 @@ def submit_trajectory():
             modality="traj",
         ),
     )
-    db.push()
+    db.push(db.fspath)
 
     return jsonify({"success": True, "trajectory_id": id})
 

@@ -15,9 +15,10 @@ CREATE TABLE IF NOT EXISTS questions(
   label TEXT
 );
 CREATE TABLE IF NOT EXISTS users(
-  mturk_id INTEGER PRIMARY KEY NOT NULL,
+  id INTEGER PRIMARY KEY,
   site_sequence INT NOT NULL,
-  demographics BLOB NOT NULL
+  demographics BLOB NOT NULL,
+  payment_code TEXT NOT NULL UNIQUE
 );
 CREATE TABLE IF NOT EXISTS answers(
   id INTEGER PRIMARY KEY,
