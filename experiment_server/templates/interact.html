@@ -9,10 +9,18 @@
 </head>
 
 <body>
+	<p>We're going to let you be the robot for a few minutes. It might take a moment to load, please be patient. Try to
+		see if you can test out everything we've told you
+		about, including breaking the robot. If you break the robot, we'll let you play with another one in a different
+		mine until the time is up. Use the arrow keys on your keyboard to move around. When you're comfortable, hit the
+		start button to start giving the robot feedback.</p>
+
 	<div id="app"></div>
 
 	<script src="/assets/env.js"></script>
 	<script src="/assets/interact.js"></script>
+
+	<button onclick="location.href='{{ url_for('replay') }}'" class="btn btn-primary" type="button">Start</button>
 </body>
 
 </html>

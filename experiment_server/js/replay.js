@@ -1,5 +1,7 @@
 import { post } from './utils.js';
 
+const MAX_QUESTIONS = 20;
+
 const games = [];
 let gameStates = null;
 let question = null;
@@ -213,6 +215,10 @@ async function select(side) {
   });
   questionStarted = false;
   usedQuestions.push(question.id);
+  if (usedQuestions.length === MAX_QUESTIONS) {
+    location.href = '/goodbye';
+    return;
+  }
   question = await requestRandomQuestion({ excludeIds: usedQuestions });
   await parseQuestion();
 }
