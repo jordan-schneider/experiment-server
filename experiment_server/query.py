@@ -3,14 +3,8 @@ import pickle
 import sqlite3
 from typing import Optional, Sequence, Tuple
 
-from experiment_server.type import (
-    Answer,
-    DataModality,
-    Demographics,
-    Question,
-    QuestionAlgorithm,
-    Trajectory,
-)
+from experiment_server.type import (Answer, DataModality, Demographics,
+                                    Question, QuestionAlgorithm, Trajectory)
 
 
 def get_random_question(
@@ -227,6 +221,17 @@ def insert_question(
     conn.commit()
     return out
 
+def save_questions(
+    conn: sqlite3.Connection,
+    questions: Sequence[Tuple[Trajectory, Trajectory]],
+    algo: QuestionAlgorithm,
+    env_name: str,
+) -> None:
+    for traj_1, traj_2 in questions:
+        traj_1_id = insert_traj(conn, traj_1)
+        traj_2_id = insert_traj(conn, traj_2)
+        insert_question(conn, (traj_1_id, traj_2_id), algo, env_name)
+    conn.commit()
 
 def create_user(
     conn: sqlite3.Connection,
