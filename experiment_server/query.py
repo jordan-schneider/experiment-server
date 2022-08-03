@@ -3,8 +3,14 @@ import pickle
 import sqlite3
 from typing import Optional, Sequence, Tuple
 
-from experiment_server.type import (Answer, DataModality, Demographics,
-                                    Question, QuestionAlgorithm, Trajectory)
+from experiment_server.type import (
+    Answer,
+    DataModality,
+    Demographics,
+    Question,
+    QuestionAlgorithm,
+    Trajectory,
+)
 
 
 def get_random_question(
@@ -188,6 +194,7 @@ def insert_traj(conn: sqlite3.Connection, traj: Trajectory) -> int:
             "length": len(traj.actions) if traj.actions is not None else 0,
             "env": traj.env_name,
             "modality": traj.modality,
+            "reason": traj.reason,
         },
     )
     assert cursor.lastrowid is not None
@@ -221,6 +228,7 @@ def insert_question(
     conn.commit()
     return out
 
+
 def save_questions(
     conn: sqlite3.Connection,
     questions: Sequence[Tuple[Trajectory, Trajectory]],
@@ -232,6 +240,7 @@ def save_questions(
         traj_2_id = insert_traj(conn, traj_2)
         insert_question(conn, (traj_1_id, traj_2_id), algo, env_name)
     conn.commit()
+
 
 def create_user(
     conn: sqlite3.Connection,

@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS trajectories(
   actions BLOB NOT NULL,
   length INT NOT NULL,
   env TEXT NOT NULL,
-  modality TEXT NOT NULL
+  modality TEXT NOT NULL,
+  reason TEXT
 );
 CREATE TABLE IF NOT EXISTS questions(
   id INTEGER PRIMARY KEY,
