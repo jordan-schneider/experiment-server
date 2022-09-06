@@ -187,7 +187,7 @@ def insert_answers(conn: sqlite3.Connection, answers: Sequence[Answer]) -> None:
 def insert_traj(conn: sqlite3.Connection, traj: Trajectory) -> int:
     # TODO: Swap pickle for dill
     cursor = conn.execute(
-        "INSERT INTO trajectories (start_state, actions, length, env, modality) VALUES (:start_state, :actions, :length, :env, :modality)",
+        "INSERT INTO trajectories (start_state, actions, length, env, modality, reason) VALUES (:start_state, :actions, :length, :env, :modality, :reason)",
         {
             "start_state": pickle.dumps(traj.start_state),
             "actions": pickle.dumps(traj.actions),
