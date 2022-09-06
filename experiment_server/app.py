@@ -144,9 +144,14 @@ def request_random_question():
     assert spec is not None
 
     env = spec["env"]
-    length = spec["lengths"][0]
+    lengths = spec["lengths"]
     modality = spec["types"][0]
     exclude_ids = spec["exclude_ids"]
+
+    if len(lengths) > 0:
+        length = lengths[0]
+    else:
+        length = None
 
     try:
         modality = assure_modality(modality)

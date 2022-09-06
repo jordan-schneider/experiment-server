@@ -1,5 +1,6 @@
 import dataclasses
 import json
+import logging
 from typing import Any
 
 import numpy as np
@@ -15,6 +16,9 @@ class Encoder(json.JSONEncoder):
             return obj.tolist()
         elif dataclasses.is_dataclass(obj):
             return self.encode(dataclasses.asdict(obj))
+        elif attrs.has(obj):
+            logging.info(f"Serializing attrs class {obj} to {attrs.asdict(obj)}")
+            return self.encode(attrs.asdict(obj))
         return json.JSONEncoder.default(self, obj)
 
 

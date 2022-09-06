@@ -17,7 +17,7 @@ def get_random_question(
     conn: sqlite3.Connection,
     question_type: DataModality,
     env: str,
-    length: int,
+    length: Optional[int] = None,
     exclude_ids: Optional[Sequence[int]] = None,
 ) -> Question:
     if exclude_ids is None:
@@ -42,9 +42,8 @@ FROM
     LEFT JOIN trajectories AS right ON
         q.second_id=right.id
     WHERE
-        left.length=:length
-        AND right.length=:length
-        AND left.modality=:question_type
+        {"left.length=:length AND right.length=:length AND" if length is not None else ""}
+        left.modality=:question_type
         AND right.modality=:question_type
         AND q.env=:env
         AND left.env=:env
@@ -80,13 +79,16 @@ FROM
         id=id,
         trajs=(
             Trajectory(
-                pickle.loads(left_start), pickle.loads(left_actions), env, left_modality
+                start_state=pickle.loads(left_start),
+                actions=pickle.loads(left_actions),
+                env_name=env,
+                modality=left_modality,
             ),
             Trajectory(
-                pickle.loads(right_start),
-                pickle.loads(right_actions),
-                env,
-                right_modality,
+                start_state=pickle.loads(right_start),
+                actions=pickle.loads(right_actions),
+                env_name=env,
+                modality=right_modality,
             ),
         ),
     )

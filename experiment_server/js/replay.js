@@ -26,8 +26,9 @@ function parseOpts() {
 }
 
 async function requestRandomQuestion({
-  env = 'miner', lengths = [10, 10], types = ['traj', 'traj'], excludeIds = [],
+  env = 'miner', lengths = [], types = ['traj', 'traj'], excludeIds = [],
 } = {}) {
+  // TODO: I'm pretty sure things are getting wrapped twice, so I have to unwrap them twice here, which is bad.
   return post('/random_question', JSON.stringify({
     env,
     lengths,
