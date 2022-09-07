@@ -2,12 +2,22 @@ import logging
 import os
 from logging.config import dictConfig
 from secrets import token_hex
-from typing import Tuple
+from typing import Optional, Tuple
 
 import arrow
 import numpy as np
-from flask import Flask, g, jsonify, render_template, request, session
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from remote_sqlite import RemoteSqlite  # type: ignore
+from werkzeug import Response
 
 from experiment_server.query import (
     create_user,
@@ -63,6 +73,12 @@ def get_db() -> RemoteSqlite:
     return db
 
 
+def redirect_missing_session() -> Optional[Response]:
+    if "user_id" not in session.keys():
+        return redirect(url_for("welcome"))
+    return None
+
+
 # Pages
 
 
@@ -79,11 +95,15 @@ def welcome():
 
 @app.route("/replay")
 def replay():
+    if (resp := redirect_missing_session()) is not None:
+        return resp
     return render_template("replay.html")
 
 
 @app.route("/goodbye")
 def goodbye():
+    if (resp := redirect_missing_session()) is not None:
+        return resp
     user_id = session["user_id"]
     session.pop("user_id", None)
     return render_template(
@@ -93,6 +113,8 @@ def goodbye():
 
 @app.route("/interact")
 def interact():
+    if (resp := redirect_missing_session()) is not None:
+        return resp
     return render_template("interact.html")
 
 
