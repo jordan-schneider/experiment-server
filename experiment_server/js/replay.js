@@ -1,3 +1,4 @@
+import 'core-js/actual/url-search-params';
 import { post } from './utils.js';
 
 const MAX_QUESTIONS = 20;
@@ -15,9 +16,7 @@ function parseOpts() {
   try {
     const search = new URLSearchParams(window.location.search);
     const ret = {};
-    for (const [k, v] of search.entries()) {
-      ret[k] = JSON.parse(v);
-    }
+    search.forEach((value, key, parent) => { ret[key] = JSON.parse(value); });
     return ret;
   } catch (e) {
     console.error('Query string is invalid');
@@ -28,7 +27,7 @@ function parseOpts() {
 async function requestRandomQuestion({
   env = 'miner', lengths = [], types = ['traj', 'traj'], excludeIds = [],
 } = {}) {
-  // TODO: I'm pretty sure things are getting wrapped twice, so I have to unwrap them twice here, which is bad.
+  // TODO: I'm pretty sure things are getting wrapped twice, so I have to unwrap them twice here
   return post('/random_question', JSON.stringify({
     env,
     lengths,
@@ -39,15 +38,13 @@ async function requestRandomQuestion({
 
 async function requestQuestionByName(name) {
   return post('/named_question', JSON.stringify({
-    name
+    name,
   })).then((resp) => resp.json()).then((json) => JSON.parse(json));
 }
 
 function prepareState(state) {
   const newGrid = new Int32Array(state.grid.length);
-  for (const [key, value] of Object.entries(state.grid)) {
-    newGrid[parseInt(key, 10)] = value;
-  }
+  state.grid.forEach((value, key) => { newGrid[parseInt(key, 10)] = value; });
 
   const out = {
     grid: newGrid,
@@ -87,6 +84,7 @@ async function parseQuestion() {
 }
 
 function checkStep(state) {
+  const outState = { ...state };
   const { game } = state;
   if (state.playState !== 'paused') {
     const { time } = state;
@@ -95,9 +93,10 @@ function checkStep(state) {
       const leftAction = actions[time];
       game.step(leftAction);
       game.render();
-      state.time += 1;
+      outState.time += 1;
     }
   }
+  return outState;
 }
 
 async function setupGames(opts) {
@@ -125,7 +124,7 @@ async function submitAnswers() {
 async function main() {
   const opts = parseOpts();
 
-  const questionName = opts.questionName;
+  const { questionName } = opts;
   delete opts.questionName;
 
   await setupGames(opts);
@@ -138,11 +137,11 @@ async function main() {
     await parseQuestion();
   }
 
-  addEventListener('visibilitychange', async event => document.visibilityState === 'hidden' ? await submitAnswers() : null);
+  window.addEventListener('visibilitychange', async (event) => (document.visibilityState === 'hidden' ? submitAnswers() : null));
 
   setInterval(() => {
-    checkStep(gameStates[0]);
-    checkStep(gameStates[1]);
+    gameStates[0] = checkStep(gameStates[0]);
+    gameStates[1] = checkStep(gameStates[1]);
   }, 500);
 }
 
@@ -211,14 +210,16 @@ async function select(side) {
   answers.push({
     id: question.id,
     answer: side,
-    startTime: startTime,
-    stopTime: stopTime,
+    startTime,
+    stopTime,
   });
+  startTime = null;
+  stopTime = null;
   questionStarted = false;
   usedQuestions.push(question.id);
   if (usedQuestions.length === MAX_QUESTIONS) {
     await submitAnswers();
-    location.href = '/goodbye';
+    window.location.href = '/goodbye';
     return;
   }
   question = await requestRandomQuestion({ excludeIds: usedQuestions });
