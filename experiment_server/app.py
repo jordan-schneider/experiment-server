@@ -64,11 +64,13 @@ def get_db() -> RemoteSqlite:
     db = getattr(g, "_database", None)
     if db is None:
         if (db_path := os.environ.get("DATABASE_PATH")) is not None:
-            logging.info("Using local database")
-            db = RemoteSqlite(db_path)
+            logging.info(f"Using local database at {db_path}")
+            db = RemoteSqlite(db_path, always_download=True)
         else:
             logging.info("Using s3 database")
-            db = RemoteSqlite("s3://mrl-experiment-sqlite/experiments.db")
+            db = RemoteSqlite(
+                "s3://mrl-experiment-sqlite/experiments.db", always_download=True
+            )
         g._database = db
     return db
 
@@ -137,7 +139,7 @@ def submit_answers():
 
     answers = [
         Answer(
-            user_id=0,
+            user_id=session["user_id"],
             question_id=j["id"],
             answer=j["answer"] == "right",
             start_time=arrow.get(j["startTime"]).isoformat(),

@@ -72,8 +72,6 @@ function makeGameState(game, traj) {
   };
 }
 
-
-
 async function parseQuestion() {
   const leftTraj = question.trajs[0];
   const rightTraj = question.trajs[1];
@@ -118,7 +116,9 @@ async function setupGames(opts) {
 }
 
 async function submitAnswers() {
-  post('/submit_answers', json.Stringify(answers));
+  if (answers.length > 0) {
+    await post('/submit_answers', JSON.stringify(answers));
+  }
   answers = [];
 }
 
@@ -138,7 +138,7 @@ async function main() {
     await parseQuestion();
   }
 
-  addEventListener('visibilitychange', event => document.visibilityState === 'hidden' ? submitAnswers() : null);
+  addEventListener('visibilitychange', async event => document.visibilityState === 'hidden' ? await submitAnswers() : null);
 
   setInterval(() => {
     checkStep(gameStates[0]);
@@ -217,6 +217,7 @@ async function select(side) {
   questionStarted = false;
   usedQuestions.push(question.id);
   if (usedQuestions.length === MAX_QUESTIONS) {
+    await submitAnswers();
     location.href = '/goodbye';
     return;
   }
