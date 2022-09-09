@@ -5,13 +5,19 @@ module.exports = {
   },
   extends: [
     'airbnb-base',
+    "plugin:compat/recommended"
   ],
   parserOptions: {
     ecmaVersion: 'latest',
     sourceType: 'module',
   },
   rules: {
-    "indent": ["error", 4],
+    "indent": ["error", 2],
     "no-console": "off",
   },
+  settings: {
+    polyfills: [
+      "URLSearchParams"
+    ]
+  }
 };
