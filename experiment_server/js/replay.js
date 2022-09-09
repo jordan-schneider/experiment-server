@@ -137,7 +137,10 @@ async function main() {
     await parseQuestion();
   }
 
-  window.addEventListener('visibilitychange', async (event) => (document.visibilityState === 'hidden' ? submitAnswers() : null));
+  // We need this await because this happens on page unload, and we need the answer submittion to block before the page
+  // changes.
+  // eslint-disable-next-line no-return-await
+  window.addEventListener('visibilitychange', async (event) => (document.visibilityState === 'hidden' ? await submitAnswers() : null));
 
   setInterval(() => {
     gameStates[0] = checkStep(gameStates[0]);
