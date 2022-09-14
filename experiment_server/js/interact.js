@@ -1,4 +1,4 @@
-import { getAction } from './utils';
+import { getAction, parseOpts } from './utils.js';
 
 const keyState = new Set();
 
@@ -13,20 +13,6 @@ function listenForKeys() {
     });
 }
 
-function parseOpts() {
-    try {
-        const search = new URLSearchParams(window.location.search);
-        const ret = {};
-        for (const [k, v] of search.entries()) { // eslint-disable-line no-restricted-syntax
-            ret[k] = JSON.parse(v);
-        }
-        return ret;
-    } catch (e) {
-        console.error('Query string is invalid');
-        return {};
-    }
-}
-
 async function main() {
     const div = document.getElementById('app');
     const opts = parseOpts();
@@ -35,7 +21,8 @@ async function main() {
         realtime = opts.realtime;
         delete opts.realtime;
     }
-    const game = await CheerpGame.init({ // eslint-disable-line no-undef
+    // eslint-disable-next-line no-undef
+    const game = await CheerpGame.init({
         ...CheerpGame.defaultOpts(), // eslint-disable-line no-undef
         ...opts,
     });

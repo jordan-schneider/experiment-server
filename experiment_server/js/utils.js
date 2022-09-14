@@ -1,3 +1,20 @@
+import 'whatwg-fetch';
+
+export function parseOpts(params) {
+    try {
+        const search = new URLSearchParams(params);
+        const ret = {};
+        // eslint-disable-next-line no-unused-vars
+        search.forEach((value, key, parent) => {
+            ret[key] = JSON.parse(value);
+        });
+        return ret;
+    } catch (e) {
+        console.error('Query string is invalid');
+        return {};
+    }
+}
+
 export function deepcopy(obj) {
     return JSON.parse(JSON.stringify(obj));
 }
@@ -13,7 +30,7 @@ export function post(url, body) {
         headers: {
             'Content-Type': 'application/json',
         },
-        body: body
+        body,
     });
 }
 
@@ -39,19 +56,13 @@ export function getAction(keyState) {
     let longest = -1;
     let action = -1;
     let i = 0;
-    for (const combo of combos) {
-        let hit = true;
-        for (const k of combo) {
-            if (!keyState.has(k)) {
-                hit = false;
-                break;
-            }
-        }
+    combos.forEach((combo) => {
+        const hit = combo.every((key) => keyState.has(key));
         if (hit && longest < combo.length) {
             longest = combo.length;
             action = i;
         }
         i += 1;
-    }
+    });
     return action;
 }

@@ -1,6 +1,5 @@
-import { getAction, post } from './utils';
-
-
+import 'core-js/actual/promise/index.js';
+import { getAction, parseOpts, post } from './utils.js';
 
 class Recorder {
     constructor() {
@@ -54,20 +53,31 @@ class Recorder {
         }
 
         let trajIds = [
-            post('/submit_trajectory', JSON.stringify({
-                start_state: this.firstTraj.startState,
-                actions: this.firstTraj.actions,
-            })),
-            post('/submit_trajectory', JSON.stringify({
-                start_state: this.secondTraj.startState,
-                actions: this.secondTraj.actions,
-            }))
+            post(
+                '/submit_trajectory',
+                JSON.stringify({
+                    start_state: this.firstTraj.startState,
+                    actions: this.firstTraj.actions,
+                }),
+            ),
+            post(
+                '/submit_trajectory',
+                JSON.stringify({
+                    start_state: this.secondTraj.startState,
+                    actions: this.secondTraj.actions,
+                }),
+            ),
         ];
-        trajIds = await Promise.all(trajIds.map(trajId => trajId.then(resp => resp.json()).then(json => json.trajectory_id)));
-        post('/submit_question', JSON.stringify({
-            traj_ids: trajIds,
-            name: name
-        }));
+        trajIds = await Promise.all(
+            trajIds.map((trajId) => trajId.then((resp) => resp.json()).then((json) => json.trajectory_id)),
+        );
+        post(
+            '/submit_question',
+            JSON.stringify({
+                traj_ids: trajIds,
+                name,
+            }),
+        );
     }
 
     resetQuestion() {
@@ -95,20 +105,6 @@ function listenForKeys() {
     });
 }
 
-function parseOpts() {
-    try {
-        const search = new URLSearchParams(window.location.search);
-        const ret = {};
-        for (const [k, v] of search.entries()) { // eslint-disable-line no-restricted-syntax
-            ret[k] = JSON.parse(v);
-        }
-        return ret;
-    } catch (e) {
-        console.error('Query string is invalid');
-        return {};
-    }
-}
-
 async function main() {
     const div = document.getElementById('app');
     const opts = parseOpts();
@@ -117,7 +113,9 @@ async function main() {
         realtime = opts.realtime;
         delete opts.realtime;
     }
-    game = await CheerpGame.init({ // eslint-disable-line no-undef
+
+    // eslint-disable-next-line no-undef
+    game = await CheerpGame.init({
         ...CheerpGame.defaultOpts(), // eslint-disable-line no-undef
         ...opts,
     });
@@ -159,25 +157,25 @@ async function submitRecording() {
         return;
     }
     recorder.stopRecording();
-    document.getElementById("firstTraj").checked = true;
+    document.getElementById('firstTraj').checked = true;
     if (recorder.secondTraj !== null) {
-        document.getElementById("secondTraj").checked = true;
+        document.getElementById('secondTraj').checked = true;
     }
 }
 
 async function cancelRecording() {
-    reccorder.cancelRecording();
+    recorder.cancelRecording();
 }
 
 async function resetQuestion() {
     recorder.resetQuestion();
-    document.getElementById("firstTraj").checked = false;
-    document.getElementById("secondTraj").checked = false;
-    document.getElementById("questionName").value = "";
+    document.getElementById('firstTraj').checked = false;
+    document.getElementById('secondTraj').checked = false;
+    document.getElementById('questionName').value = '';
 }
 
 async function submitQuestion() {
-    const name = document.getElementById("questionName").value;
+    const name = document.getElementById('questionName').value;
     await recorder.submitQuestion(name);
     resetQuestion();
 }

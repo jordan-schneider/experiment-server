@@ -3,9 +3,11 @@
   "version": "1.0.0",
   "description": "",
   "private": true,
+  "type": "module",
   "scripts": {
     "build": "webpack",
-    "deploy": ". experiment_server/SECRETS.sh && gunicorn experiment_server.app:app"
+    "deploy": ". experiment_server/SECRETS.sh && gunicorn experiment_server.app:app",
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
@@ -14,10 +16,14 @@
     "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-compat": "^4.0.2",
     "eslint-plugin-import": "^2.26.0",
+    "jest": "^29.0.3",
     "webpack": "^5.73.0",
     "webpack-cli": "^4.10.0"
   },
   "dependencies": {
-    "core-js": "^3.25.1"
+    "@babel/preset-env": "^7.19.0",
+    "babel": "^6.23.0",
+    "core-js": "^3.25.1",
+    "whatwg-fetch": "^3.6.2"
   }
 }
