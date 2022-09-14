@@ -93,16 +93,16 @@ class GameManager {
     }
 
     async pauseLeft() {
-        this.pause('left');
+        await this.pause('left');
     }
 
     async pauseRight() {
-        this.pause('right');
+        await this.pause('right');
     }
 
     async pauseBoth() {
-        this.pause('left');
-        this.pause('right');
+        await this.pause('left');
+        await this.pause('right');
     }
 
     async play(side) {
@@ -113,23 +113,23 @@ class GameManager {
     }
 
     async playLeft() {
-        this.play('left');
+        await this.play('left');
     }
 
     async playRight() {
-        this.play('right');
+        await this.play('right');
     }
 
     async playBoth() {
-        this.play('left');
-        this.play('right');
+        await this.play('left');
+        await this.play('right');
     }
 
     async restart(side) {
         const state = await this.getGameState(side);
         state.time = 0;
         state.playState = 'paused';
-        this.setGameState(side, state);
+        await this.setGameState(side, state);
 
         const game = await this.getGame(side);
         game.setState(state.traj.start_state);
@@ -137,16 +137,16 @@ class GameManager {
     }
 
     async restartLeft() {
-        this.restart('left');
+        await this.restart('left');
     }
 
     async restartRight() {
-        this.restart('right');
+        await this.restart('right');
     }
 
     async restartBoth() {
-        this.restart('left');
-        this.restart('right');
+        await this.restart('left');
+        await this.restart('right');
     }
 }
 
