@@ -19,6 +19,7 @@ from flask import (
 from remote_sqlite import RemoteSqlite  # type: ignore
 from werkzeug import Response
 
+from experiment_server.encoder import Encoder
 from experiment_server.query import (
     create_user,
     get_named_question,
@@ -28,7 +29,6 @@ from experiment_server.query import (
     insert_question,
     insert_traj,
 )
-from experiment_server.serialize import serialize
 from experiment_server.type import (
     Answer,
     Demographics,
@@ -58,6 +58,7 @@ dictConfig(
 
 app = Flask(__name__, static_url_path="/assets")
 app.secret_key = os.environ["SECRET_KEY"]
+app.json_encoder = Encoder
 
 
 def get_db() -> RemoteSqlite:
@@ -189,7 +190,7 @@ def request_random_question():
         length=length,
         exclude_ids=exclude_ids,
     )
-    return serialize(question)
+    return jsonify(question)
 
 
 @app.route("/named_question", methods=["POST"])
@@ -201,7 +202,7 @@ def request_named_question():
     assert spec is not None
 
     question = get_named_question(conn=get_db().con, name=spec["name"])
-    return serialize(question)
+    return jsonify(question)
 
 
 @app.route("/submit_question", methods=["POST"])

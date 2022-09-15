@@ -16,12 +16,8 @@ class Encoder(json.JSONEncoder):
         elif isinstance(obj, np.ndarray):
             return obj.tolist()
         elif dataclasses.is_dataclass(obj):
-            return self.encode(dataclasses.asdict(obj))
+            return dataclasses.asdict(obj)
         elif attrs.has(obj):
             logging.info(f"Serializing attrs class {obj} to {attrs.asdict(obj)}")
-            return self.encode(attrs.asdict(obj))
+            return attrs.asdict(obj)
         return json.JSONEncoder.default(self, obj)
-
-
-def serialize(obj: Any) -> str:
-    return json.dumps(obj, cls=Encoder)
