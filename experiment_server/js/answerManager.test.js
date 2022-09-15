@@ -2,8 +2,7 @@ import { jest } from '@jest/globals';
 
 jest.unstable_mockModule('./utils.js', () => ({ post: jest.fn() }));
 
-const answerModule = await import('./answerManager.js');
-const AnswerManager = answerModule.default;
+const AnswerManager = (await import('./answerManager.js')).default;
 const utils = await import('./utils.js');
 
 test('setQuestionId', () => {
