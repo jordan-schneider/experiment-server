@@ -10,41 +10,46 @@
 
 <body>
     <!-- TODO: Consider breaking these instructions into separate pages. -->
-    <p>If at any point you experience a bug or error please email us at <a
+    <div id="browser-warning"></div>
+    <div id="content">
+        <p>If at any point you experience a bug or error please email us at <a
             href="mailto:jordan.jack.schneider@gmail.com">jordan.jack.schneider@gmail.com</a> .</p>
-    <p>Today we're trying to help a mining robot understand how well it's doing its job. We're going to show you two
-        pictures or videos of the robot and ask you which one is better.</p>
+        <p>Today we're trying to help a mining robot understand how well it's doing its job. We're going to show you two
+            pictures or videos of the robot and ask you which one is better.</p>
 
-    <p>The robot can move around the mine and pick up diamonds. When the robot has picked up all the diamonds, it can
-        leave through the door.<br>
-        <img alt="assets/intro/dynamics/start.gif" src="assets/intro/dynamics/start.gif" class="internal-embed">
-    </p>
-    <p>But watch out! If something falls on the robot, it will break, and you'll have to start over in a new mine.<br>
-        <img alt="assets/intro/dynamics/death.gif" src="assets/intro/dynamics/death.gif" class="internal-embed">
-    </p>
-    <p>You can push boulders around if there's an empty space for them to go.<br>
-        <img alt="assets/intro/dynamics/pushing.gif" src="assets/intro/dynamics/pushing.gif" class="internal-embed">
-    </p>
-    <p>Boulders and diamonds can slip off of each other if there's an empty space to the side.<br>
-        <img alt="assets/intro/dynamics/slipping.gif" src="assets/intro/dynamics/slipping.gif" class="internal-embed">
-    </p>
+        <p>The robot can move around the mine and pick up diamonds. When the robot has picked up all the diamonds, it can
+            leave through the door.<br>
+            <img alt="assets/intro/dynamics/start.gif" src="assets/intro/dynamics/start.gif" class="internal-embed">
+        </p>
+        <p>But watch out! If something falls on the robot, it will break, and you'll have to start over in a new mine.<br>
+            <img alt="assets/intro/dynamics/death.gif" src="assets/intro/dynamics/death.gif" class="internal-embed">
+        </p>
+        <p>You can push boulders around if there's an empty space for them to go.<br>
+            <img alt="assets/intro/dynamics/pushing.gif" src="assets/intro/dynamics/pushing.gif" class="internal-embed">
+        </p>
+        <p>Boulders and diamonds can slip off of each other if there's an empty space to the side.<br>
+            <img alt="assets/intro/dynamics/slipping.gif" src="assets/intro/dynamics/slipping.gif" class="internal-embed">
+        </p>
 
-    <p>Your job is to tell the robot when it's doing better or worse. Here are some things you might want to consider:
-    </p>
-    <p>The robot's job is mine for diamonds. It's better for the robot to mine a diamond than not to.<br>
-        <img alt="assets/intro/comparison/pickup.gif" src="assets/intro/comparison/pickup.gif" class="internal-embed">
-    </p>
-    <p>The robot is very expensive. It's worse if the robot explodes.<br>
-        <img alt="assets/intro/comparison/death.gif" src="assets/intro/comparison/death.gif" class="internal-embed">
-    </p>
-    <p>There is dark brown mud in the mine. It's worse for the robot to go through mud than dirt.<br>
-        <img alt="assets/intro/comparison/mud.gif" src="assets/intro/comparison/mud.gif" class="internal-embed">
-    </p>
-    <p>When the robot has picked up all the diamonds, it can go home through the door. It's better for the robot to go
-        home than to stay in the mine.<br>
-        <img alt="assets/intro/comparison/exit.gif" src="assets/intro/comparison/exit.gif" class="internal-embed">
-    </p>
-    <button onclick="location.href='{{ url_for('interact') }}'" class="btn btn-primary" type="button">Continue</button>
+        <p>Your job is to tell the robot when it's doing better or worse. Here are some things you might want to consider:
+        </p>
+        <p>The robot's job is mine for diamonds. It's better for the robot to mine a diamond than not to.<br>
+            <img alt="assets/intro/comparison/pickup.gif" src="assets/intro/comparison/pickup.gif" class="internal-embed">
+        </p>
+        <p>The robot is very expensive. It's worse if the robot explodes.<br>
+            <img alt="assets/intro/comparison/death.gif" src="assets/intro/comparison/death.gif" class="internal-embed">
+        </p>
+        <p>There is dark brown mud in the mine. It's worse for the robot to go through mud than dirt.<br>
+            <img alt="assets/intro/comparison/mud.gif" src="assets/intro/comparison/mud.gif" class="internal-embed">
+        </p>
+        <p>When the robot has picked up all the diamonds, it can go home through the door. It's better for the robot to go
+            home than to stay in the mine.<br>
+            <img alt="assets/intro/comparison/exit.gif" src="assets/intro/comparison/exit.gif" class="internal-embed">
+        </p>
+        <button onclick="location.href='{{ url_for('interact') }}'" class="btn btn-primary" type="button">Continue</button>
+    </div>
+
+    <script src="/assets/welcome.js"></script>
 </body>
 
 </html>

@@ -29,6 +29,7 @@ from experiment_server.query import (
     insert_question,
     insert_traj,
 )
+from experiment_server.remote_file_handler import remoteFileHanlderFactory
 from experiment_server.type import (
     Answer,
     Demographics,
@@ -36,6 +37,11 @@ from experiment_server.type import (
     Trajectory,
     assure_modality,
 )
+
+
+def use_local() -> bool:
+    return os.environ.get("DATABASE_PATH") is not None
+
 
 dictConfig(
     {
@@ -50,9 +56,16 @@ dictConfig(
                 "class": "logging.StreamHandler",
                 "stream": "ext://flask.logging.wsgi_errors_stream",
                 "formatter": "default",
-            }
+            },
+            "file": {
+                "()": remoteFileHanlderFactory,
+                "path": "osfs://./experiment.log"
+                if use_local()
+                else "s3://mrl-experiment-sqlite/experiment.log",
+                "formatter": "default",
+            },
         },
-        "root": {"level": "INFO", "handlers": ["wsgi"]},
+        "root": {"level": "INFO", "handlers": ["wsgi", "file"]},
     }
 )
 
@@ -65,10 +78,10 @@ def get_db() -> RemoteSqlite:
     db = getattr(g, "_database", None)
     if db is None:
         if (db_path := os.environ.get("DATABASE_PATH")) is not None:
-            logging.info(f"Using local database at {db_path}")
+            app.logger.info(f"Using local database at {db_path}")
             db = RemoteSqlite(db_path, always_download=True)
         else:
-            logging.info("Using s3 database")
+            app.logger.info("Using s3 database")
             db = RemoteSqlite(
                 "s3://mrl-experiment-sqlite/experiments.db", always_download=True
             )
@@ -93,6 +106,7 @@ def welcome():
     user_id = create_user(db.con, Demographics(), payment_id)
     db.push(db.fspath)
     session["user_id"] = user_id
+    logging.getLogger().handlers[-1].push()
     return render_template("welcome.html")
 
 
@@ -136,7 +150,7 @@ def submit_answers():
     json = request.get_json()
     assert json is not None
 
-    logging.debug(f"Received answers: {json}")
+    app.logger.debug(f"Received answers: {json}")
 
     answers = [
         Answer(
@@ -250,6 +264,16 @@ def submit_trajectory():
     db.push(db.fspath)
 
     return jsonify({"success": True, "trajectory_id": id})
+
+
+@app.route("/log", methods=["POST"])
+def log():
+    if request.method != "POST":
+        return jsonify({"error": "Method not allowed"}), 405
+    json = request.get_json()
+    assert json is not None
+    app.logger.info(json)
+    return jsonify({"success": True})
 
 
 @app.teardown_appcontext
