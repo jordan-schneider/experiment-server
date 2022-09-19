@@ -13,9 +13,9 @@ module.exports = {
         'no-console': 'off',
         'max-len': ['error', { code: 120 }],
         'import/extensions': ['error', 'always'],
-        'no-underscore-dangle': { allowAfterThis: true },
+        'no-underscore-dangle': ['error', { allowAfterThis: true }],
     },
     settings: {
-        polyfills: ['URLSearchParams', 'Promise', 'fetch'],
+        polyfills: ['URLSearchParams', 'Promise', 'fetch', 'Int32Array'],
     },
 };

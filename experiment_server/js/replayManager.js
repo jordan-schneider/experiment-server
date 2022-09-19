@@ -1,3 +1,4 @@
+import 'core-js/actual/typed-array/int32-array.js';
 import AnswerManager from './answerManager.js';
 import GameManager from './gameManager.js';
 import QueryManager from './queryManager.js';
