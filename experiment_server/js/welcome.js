@@ -1,16 +1,17 @@
 import { post } from './utils.js';
-const broswerRegex = /(Chrome)|(Firefox)|(Edge)/;
+
+const broswerRegex = /(Chrome)|(Firefox)|(Edge)|(Opera)|(Safari)/;
 
 // TODO: These versions are fake, figure out the real ones.
 const minGoodVersions = {
-    Chrome: 76,
-    Firefox: 200,
+    Chrome: 0,
+    Firefox: 61,
     Edge: 18,
+    Opera: 13,
+    Safari: 0,
 };
 const goodVersionString = Object.entries(minGoodVersions)
-    .map(([browser, version]) => {
-        return `${browser} ${version}+`;
-    })
+    .map(([browser, version]) => `${browser} ${version}+`)
     .join(', ');
 
 function isGoodBrowser(userAgent) {
@@ -18,10 +19,10 @@ function isGoodBrowser(userAgent) {
     if (browserMatch) {
         const browser = browserMatch[0];
         // const versionRegex = new RegExp('([0-9]+])');
-        const versionMatch = userAgent.match(new RegExp(browser + '/([0-9]+)'));
+        const versionMatch = userAgent.match(new RegExp(`${browser}/([0-9]+)`));
         if (versionMatch) {
             const version = versionMatch[1];
-            if (browser in Object.keys(minGoodVersions)) {
+            if (Object.keys(minGoodVersions).includes(browser)) {
                 return version >= minGoodVersions[browser];
             }
         }
@@ -30,8 +31,8 @@ function isGoodBrowser(userAgent) {
 }
 
 async function main() {
-    const userAgent = navigator.userAgent;
-    post('/log', JSON.stringify({ userAgent: userAgent }));
+    const { userAgent } = navigator;
+    post('/log', JSON.stringify({ userAgent }));
     if (!isGoodBrowser(userAgent)) {
         document
             .getElementById('browser-warning')

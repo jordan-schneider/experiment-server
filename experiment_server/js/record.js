@@ -139,10 +139,6 @@ async function main() {
     }, 1000 / 15);
 }
 
-async function startRecording() {
-    recorder.startRecording(jsStateToPython(game.getState()));
-}
-
 function jsStateToPython(state) {
     return {
         grid: state.grid,
@@ -150,6 +146,10 @@ function jsStateToPython(state) {
         agent_pos: [state.agent_x, state.agent_y],
         exit_pos: [state.exit_x, state.exit_y],
     };
+}
+
+async function startRecording() {
+    recorder.startRecording(jsStateToPython(game.getState()));
 }
 
 async function submitRecording() {

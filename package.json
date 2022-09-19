@@ -9,6 +9,9 @@
     "deploy": ". experiment_server/SECRETS.sh && gunicorn experiment_server.app:app",
     "test": "jest"
   },
+  "browserslist": [
+    ">0.1%, not dead, last 2 major versions, chrome >=0, ie>7, firefox>60, opera>12, safari>0"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
@@ -23,6 +26,7 @@
   "dependencies": {
     "@babel/preset-env": "^7.19.0",
     "babel": "^6.23.0",
+    "browserslist": "^4.21.4",
     "core-js": "^3.25.1",
     "whatwg-fetch": "^3.6.2"
   }

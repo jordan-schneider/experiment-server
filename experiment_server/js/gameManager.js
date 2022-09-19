@@ -35,18 +35,22 @@ class GameManager {
         }
         return this._games;
     }
+
     async getGame(side) {
         return (await this.getGames())[GameManager.getSideIndex(side)];
     }
+
     async getGameStates() {
         if (this._states === undefined) {
             await this.gamePromise;
         }
         return this._states;
     }
+
     async getGameState(side) {
         return (await this.getGameStates())[GameManager.getSideIndex(side)];
     }
+
     async setGameState(side, gameState) {
         if (this._states === undefined) {
             await this.gamePromise;
