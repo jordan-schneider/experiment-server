@@ -18,6 +18,6 @@ class Encoder(json.JSONEncoder):
         elif dataclasses.is_dataclass(obj):
             return dataclasses.asdict(obj)
         elif attrs.has(obj):
-            logging.info(f"Serializing attrs class {obj} to {attrs.asdict(obj)}")
+            logging.debug(f"Serializing attrs class {obj} to {attrs.asdict(obj)}")
             return attrs.asdict(obj)
         return json.JSONEncoder.default(self, obj)
