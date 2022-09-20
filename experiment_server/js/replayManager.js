@@ -1,8 +1,8 @@
 import 'core-js/actual/typed-array/int32-array.js';
-import AnswerManager from './answerManager.js';
 import GameManager from './gameManager.js';
-import QueryManager from './queryManager.js';
+import { requestRandomQuestion } from './queries.js';
 import Timer from './timer.js';
+import { post } from './utils.js';
 
 class ReplayManager {
     constructor(document, window, maxQuestions, tickLength, opts) {
@@ -17,25 +17,16 @@ class ReplayManager {
             this.addGamesToDocument(games);
         });
 
-        this.queryManager = new QueryManager();
         this.timer = new Timer();
         this.gameManager = new GameManager(this.gamePromise, this.timer, tickLength);
 
-        this.answerManager = new AnswerManager();
         this.question = null;
-
-        // We need this await because this happens on page unload, and we need the answer submittion to block before
-        // the page changes.
-        // eslint-disable-next-line no-unused-vars
-        this.window.addEventListener('visibilitychange', async (event) => {
-            if (document.visibilityState === 'hidden') {
-                await this.answerManager.submitAnswers();
-            }
-        });
 
         this.select = this.select.bind(this);
         this.selectLeft = this.selectLeft.bind(this);
         this.selectRight = this.selectRight.bind(this);
+
+        this.nextQuestion();
     }
 
     async getGames() {
@@ -82,6 +73,7 @@ class ReplayManager {
         games[1].render();
 
         this.gameManager.setTrajs(trajs);
+        this.questionId = question.id;
         return trajs;
     }
 
@@ -112,7 +104,7 @@ class ReplayManager {
             return;
         }
 
-        this.answerManager.addAnswer(side, this.timer);
+        await this.submitAnswer(side, this.timer);
 
         this.timer.reset();
 
@@ -121,16 +113,28 @@ class ReplayManager {
         this.nextQuestion();
     }
 
+    async submitAnswer(side, timer) {
+        await post(
+            '/submit_answer',
+            JSON.stringify({
+                id: this.questionId,
+                answer: side,
+                startTime: timer.startTime,
+                stopTime: timer.stopTime,
+            }),
+        );
+    }
+
     async leaveIfDone() {
-        if (this.queryManager.nQuestionsUsed() === this.maxQuestions) {
-            await this.answerManager.submitAnswers();
+        if (this.usedQuestions.length >= this.maxQuestions) {
             this.window.location.href = '/goodbye';
         }
     }
 
     async nextQuestion() {
-        this.question = await this.parseQuestion(await this.queryManager.requestRandomQuestion());
-        this.answerManager.setQuestionId(this.question.id);
+        const response = await requestRandomQuestion();
+        this.question = await this.parseQuestion(response.question);
+        this.usedQuestions = response.usedQuestions;
     }
 
     async selectLeft() {

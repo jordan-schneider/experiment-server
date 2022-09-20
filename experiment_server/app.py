@@ -1,10 +1,11 @@
-import logging
 import os
+import re
 from logging.config import dictConfig
 from secrets import token_hex
-from typing import Optional, Tuple
+from typing import Final, Literal, Optional, Tuple
 
 import arrow
+import fs
 import numpy as np
 from flask import (
     Flask,
@@ -21,26 +22,20 @@ from werkzeug import Response
 
 from experiment_server.encoder import Encoder
 from experiment_server.query import (
-    create_user,
     get_named_question,
-    get_payment_code,
     get_random_question,
-    insert_answers,
     insert_question,
     insert_traj,
 )
 from experiment_server.remote_file_handler import remoteFileHanlderFactory
-from experiment_server.type import (
-    Answer,
-    Demographics,
-    State,
-    Trajectory,
-    assure_modality,
-)
+from experiment_server.type import Answer, State, Trajectory, assure_modality
+from experiment_server.user_file import UserFile
+
+MAX_QUESTIONS: Final[int] = 20
 
 
 def use_local() -> bool:
-    return os.environ.get("DATABASE_PATH") is not None
+    return os.environ.get("EXPERIMENT_DIR") is not None
 
 
 dictConfig(
@@ -71,7 +66,7 @@ dictConfig(
 
 app = Flask(__name__, static_url_path="/assets")
 app.secret_key = os.environ["SECRET_KEY"]
-app.json_encoder = Encoder
+app.json_encoder = Encoder  # type: ignore
 
 
 def get_db() -> RemoteSqlite:
@@ -89,10 +84,61 @@ def get_db() -> RemoteSqlite:
     return db
 
 
-def redirect_missing_session() -> Optional[Response]:
-    if "user_id" not in session.keys():
+def get_user_file() -> Optional[UserFile]:
+    user_file = getattr(g, "_user_file", None)
+    if (
+        user_file is None
+        and "user_id" in session.keys()
+        and "payment_code" in session.keys()
+    ):
+        path = get_user_path()
+        user_file = UserFile(path, session["user_id"], session["payment_code"])
+        g._user_file = user_file
+    return user_file
+
+
+def redirect_missing_session(
+    current_page: Literal["welcome", "interact", "replay", "goodbye"]
+) -> Optional[Response]:
+    if "user_id" not in session.keys() and current_page != "welcome":
         return redirect(url_for("welcome"))
+    elif (user_file := get_user_file()) is not None:
+        n_questions = len(user_file.get().get_used_questions())
+        app.logger.info(f"current page: {current_page}, n_questions: {n_questions}")
+        if n_questions > 0 and n_questions < MAX_QUESTIONS and current_page != "replay":
+            return redirect(url_for("replay"))
+        elif n_questions >= MAX_QUESTIONS and current_page != "goodbye":
+            return redirect(url_for("goodbye"))
     return None
+
+
+def get_user_path() -> str:
+    return (
+        "s3:///mrl-experiment-sqlite/users/"
+        if not use_local()
+        else f"osfs://{os.environ['EXPERIMENT_DIR']}"
+    )
+
+
+def create_user() -> int:
+    path = get_user_path()
+
+    files = fs.open_fs(path).listdir("/")
+    user_files = [f for f in files if f.startswith("user_")]
+    max_user_id = max(
+        [int(re.match(r"user_([0-9]+).json", f)[1]) for f in user_files] + [-1]
+    )
+
+    return max_user_id + 1
+
+
+def parse_answer(json) -> Answer:
+    return Answer(
+        question_id=json["id"],
+        answer=json["answer"] == "right",
+        start_time=arrow.get(json["startTime"]).isoformat(),
+        end_time=arrow.get(json["stopTime"]).isoformat(),
+    )
 
 
 # Pages
@@ -100,37 +146,33 @@ def redirect_missing_session() -> Optional[Response]:
 
 @app.route("/")
 def welcome():
-    payment_id = token_hex(16)
-    db = get_db()
-    db.pull(db.fspath)
-    user_id = create_user(db.con, Demographics(), payment_id)
-    db.push(db.fspath)
-    session["user_id"] = user_id
-    logging.getLogger().handlers[-1].push()
+    if (resp := redirect_missing_session("welcome")) is not None:
+        return resp
+    if "user_id" not in session.keys():
+        session["user_id"] = create_user()
+        session["payment_code"] = token_hex(16)
     return render_template("welcome.html")
 
 
 @app.route("/replay")
 def replay():
-    if (resp := redirect_missing_session()) is not None:
+    app.logger.info("Visited replay")
+    if (resp := redirect_missing_session("replay")) is not None:
         return resp
     return render_template("replay.html")
 
 
 @app.route("/goodbye")
 def goodbye():
-    if (resp := redirect_missing_session()) is not None:
+    app.logger.info("Visited goodbye")
+    if (resp := redirect_missing_session("goodbye")) is not None:
         return resp
-    user_id = session["user_id"]
-    session.pop("user_id", None)
-    return render_template(
-        "goodbye.html", payment_code=get_payment_code(get_db().con, user_id)
-    )
+    return render_template("goodbye.html", payment_code=session["payment_code"])
 
 
 @app.route("/interact")
 def interact():
-    if (resp := redirect_missing_session()) is not None:
+    if (resp := redirect_missing_session("interact")) is not None:
         return resp
     return render_template("interact.html")
 
@@ -143,33 +185,17 @@ def record():
 # API
 
 
-@app.route("/submit_answers", methods=["POST"])
-def submit_answers():
+@app.route("/submit_answer", methods=["POST"])
+def submit_answer():
     if request.method != "POST":
         return jsonify({"error": "Method not allowed"}), 405
     json = request.get_json()
-    assert json is not None
-
-    app.logger.debug(f"Received answers: {json}")
-
-    answers = [
-        Answer(
-            user_id=session["user_id"],
-            question_id=j["id"],
-            answer=j["answer"] == "right",
-            start_time=arrow.get(j["startTime"]).isoformat(),
-            end_time=arrow.get(j["stopTime"]).isoformat(),
-        )
-        for j in json
-    ]
-
-    db = get_db()
-    db.pull(db.fspath)
-    insert_answers(
-        db.con,
-        answers,
-    )
-    db.push(db.fspath)
+    user_file = get_user_file()
+    if user_file is None:
+        return jsonify({"error": "User not found"}), 404
+    user = user_file.get()
+    user.responses.append(parse_answer(json))
+    user_file.write(user)
 
     return jsonify({"success": True})
 
@@ -178,6 +204,8 @@ def submit_answers():
 def request_random_question():
     if request.method != "POST":
         return jsonify({"error": "Method not allowed"}), 405
+    if (user_file := get_user_file()) is None:
+        return jsonify({"error": "User not found"}), 404
 
     spec = request.get_json()
     assert spec is not None
@@ -185,7 +213,7 @@ def request_random_question():
     env = spec["env"]
     lengths = spec["lengths"]
     modality = spec["types"][0]
-    exclude_ids = spec["exclude_ids"]
+    exclude_ids = user_file.get().get_used_questions()
 
     if len(lengths) > 0:
         length = lengths[0]
@@ -204,7 +232,7 @@ def request_random_question():
         length=length,
         exclude_ids=exclude_ids,
     )
-    return jsonify(question)
+    return jsonify({"question": question, "usedQuestions": exclude_ids + [question.id]})
 
 
 @app.route("/named_question", methods=["POST"])

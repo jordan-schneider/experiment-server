@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Literal, Optional, Tuple, cast
+from typing import List, Literal, Optional, Tuple, cast
 
 import numpy as np
 from attrs import cmp_using, define, field
@@ -54,14 +54,26 @@ class Question:
 
 @define
 class Answer:
-    user_id: int
     question_id: int
     answer: bool
     start_time: str
     end_time: str
 
 
-# TODO: Decide what demographics might be interesting
-@define
-class Demographics:
-    pass
+@define()
+class User:
+    user_id: int
+    payment_code: str
+    # [(quesiton_id, prefer_left)]
+    responses: List[Answer]
+
+    def get_used_questions(self) -> List[int]:
+        return [r.question_id for r in self.responses]
+
+    @staticmethod
+    def from_dict(vals: dict) -> User:
+        return User(
+            user_id=vals["user_id"],
+            payment_code=vals["payment_code"],
+            responses=[Answer(**r) for r in vals["responses"]],
+        )
