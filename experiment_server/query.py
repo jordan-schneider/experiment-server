@@ -1,18 +1,19 @@
 import logging
 import pickle
 import sqlite3
-from typing import Optional, Sequence, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 from experiment_server.type import DataModality, Question, QuestionAlgorithm, Trajectory
 
 
-def get_random_question(
+def get_random_questions(
     conn: sqlite3.Connection,
+    n_questions: int,
     question_type: DataModality,
     env: str,
     length: Optional[int] = None,
     exclude_ids: Optional[Sequence[int]] = None,
-) -> Question:
+) -> List[Question]:
     if exclude_ids is None:
         exclude_ids = []
     excl_list = ", ".join(f":excl_{i}" for i in range(len(exclude_ids)))
@@ -41,17 +42,19 @@ FROM
         AND q.env=:env
         AND left.env=:env
         AND right.env=:env 
-    ORDER BY RANDOM() LIMIT 1;"""
+    ORDER BY RANDOM() LIMIT :n_questions;"""
     values = {
         "question_type": question_type,
         "length": length,
         "env": env,
+        "n_questions": n_questions,
         **excl_values,
     }
     logging.debug(f"Querying:\n{query_s}\nwith values:\n{values}")
 
     cursor = conn.execute(query_s, values)
-    (
+    questions = []
+    for (
         id,
         first_id,
         second_id,
@@ -66,25 +69,28 @@ FROM
         right_actions,
         right_length,
         right_modality,
-    ) = next(cursor)
-    # TODO: Swap pickle for dill
-    return Question(
-        id=id,
-        trajs=(
-            Trajectory(
-                start_state=pickle.loads(left_start),
-                actions=pickle.loads(left_actions),
-                env_name=env,
-                modality=left_modality,
-            ),
-            Trajectory(
-                start_state=pickle.loads(right_start),
-                actions=pickle.loads(right_actions),
-                env_name=env,
-                modality=right_modality,
-            ),
-        ),
-    )
+    ) in cursor:
+        questions.append(
+            Question(
+                id=id,
+                trajs=(
+                    Trajectory(
+                        start_state=pickle.loads(left_start),
+                        actions=pickle.loads(left_actions),
+                        env_name=env,
+                        modality=left_modality,
+                    ),
+                    Trajectory(
+                        start_state=pickle.loads(right_start),
+                        actions=pickle.loads(right_actions),
+                        env_name=env,
+                        modality=right_modality,
+                    ),
+                ),
+            )
+        )
+    assert len(questions) == n_questions
+    return questions
 
 
 def get_named_question(conn: sqlite3.Connection, name: str) -> Question:

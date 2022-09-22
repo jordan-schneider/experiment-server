@@ -7,26 +7,14 @@ from typing import Final, Literal, Optional, Tuple
 import arrow
 import fs
 import numpy as np
-from flask import (
-    Flask,
-    g,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import (Flask, g, jsonify, redirect, render_template, request,
+                   session, url_for)
 from remote_sqlite import RemoteSqlite  # type: ignore
 from werkzeug import Response
 
 from experiment_server.encoder import Encoder
-from experiment_server.query import (
-    get_named_question,
-    get_random_question,
-    insert_question,
-    insert_traj,
-)
+from experiment_server.query import (get_named_question, get_random_questions,
+                                     insert_question, insert_traj)
 from experiment_server.remote_file_handler import remoteFileHanlderFactory
 from experiment_server.type import Answer, State, Trajectory, assure_modality
 from experiment_server.user_file import UserFile
@@ -200,8 +188,8 @@ def submit_answer():
     return jsonify({"success": True})
 
 
-@app.route("/random_question", methods=["POST"])
-def request_random_question():
+@app.route("/random_questions", methods=["POST"])
+def request_random_questions():
     if request.method != "POST":
         return jsonify({"error": "Method not allowed"}), 405
     if (user_file := get_user_file()) is None:
@@ -220,19 +208,16 @@ def request_random_question():
     else:
         length = None
 
-    try:
-        modality = assure_modality(modality)
-    except ValueError as e:
-        return jsonify({"error": str(e)}), 400
-
-    question = get_random_question(
-        get_db().con,
+    questions = get_random_questions(
+        conn=get_db().con,
+        n_questions=MAX_QUESTIONS - len(exclude_ids),
         question_type=modality,
         env=env,
         length=length,
         exclude_ids=exclude_ids,
     )
-    return jsonify({"question": question, "usedQuestions": exclude_ids + [question.id]})
+
+    return jsonify(questions)
 
 
 @app.route("/named_question", methods=["POST"])

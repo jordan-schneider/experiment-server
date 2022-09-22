@@ -1,6 +1,6 @@
 import 'core-js/actual/typed-array/int32-array.js';
 import GameManager from './gameManager.js';
-import { requestRandomQuestion } from './queries.js';
+import { requestRandomQuestions } from './queries.js';
 import Timer from './timer.js';
 import { post } from './utils.js';
 
@@ -20,13 +20,11 @@ class ReplayManager {
         this.timer = new Timer();
         this.gameManager = new GameManager(this.gamePromise, this.timer, tickLength);
 
-        this.question = null;
+        this.questionsPromise = requestRandomQuestions();
 
         this.select = this.select.bind(this);
         this.selectLeft = this.selectLeft.bind(this);
         this.selectRight = this.selectRight.bind(this);
-
-        this.nextQuestion();
     }
 
     async getGames() {
@@ -34,6 +32,13 @@ class ReplayManager {
             await this.gamePromise;
         }
         return this._games;
+    }
+
+    async getQuestions() {
+        if (this._questions === undefined) {
+            this._questions = await this.questionsPromise;
+        }
+        return this._questions;
     }
 
     static async constructGames(opts) {
@@ -104,7 +109,7 @@ class ReplayManager {
             return;
         }
 
-        await this.submitAnswer(side, this.timer);
+        this.submitPromise = this.submitAnswer(side, this.timer);
 
         this.timer.reset();
 
@@ -126,15 +131,14 @@ class ReplayManager {
     }
 
     async leaveIfDone() {
-        if (this.usedQuestions.length >= this.maxQuestions) {
+        if ((await this.getQuestions()).length === 0) {
+            await this.submitPromise;
             this.window.location.href = '/goodbye';
         }
     }
 
     async nextQuestion() {
-        const response = await requestRandomQuestion();
-        this.question = await this.parseQuestion(response.question);
-        this.usedQuestions = response.usedQuestions;
+        await this.parseQuestion((await this.getQuestions()).pop());
     }
 
     async selectLeft() {
