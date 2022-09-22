@@ -114,7 +114,7 @@ def redirect_missing_session(
 
 def get_user_path() -> str:
     return (
-        "s3:///mrl-experiment-sqlite/users/"
+        "s3://mrl-experiment-sqlite/users/"
         if not use_local()
         else f"osfs://{os.environ['EXPERIMENT_DIR']}"
     )
@@ -124,10 +124,10 @@ def create_user() -> int:
     path = get_user_path()
 
     files = fs.open_fs(path).listdir("/")
-    user_files = [f for f in files if f.startswith("user_")]
-    max_user_id = max(
-        [int(re.match(r"user_([0-9]+).json", f)[1]) for f in user_files] + [-1]
-    )
+    max_user_id = -1
+    for f in files:
+        if match := re.match(r"user_([0-9]+).json", f):
+            max_user_id = max(max_user_id, int(match.group(1)))
 
     return max_user_id + 1
 
