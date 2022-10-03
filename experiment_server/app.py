@@ -101,7 +101,9 @@ def redirect_missing_session(
     current_page: Literal["welcome", "instructions", "interact", "replay", "goodbye"]
 ) -> Optional[Response]:
     if (
-        "user_id" not in session.keys() or not session["consent"]
+        "user_id" not in session.keys()
+        or "consent" not in session.keys()
+        or not session["consent"]
     ) and current_page != "welcome":
         return redirect(url_for("welcome"))
     elif (user_file := get_user_file()) is not None:
