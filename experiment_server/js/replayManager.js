@@ -139,6 +139,12 @@ class ReplayManager {
 
     async nextQuestion() {
         await this.parseQuestion((await this.getQuestions()).pop());
+        this.updateQuestionCount();
+    }
+
+    async updateQuestionCount() {
+        const currentQuestions = this.maxQuestions - (await this.getQuestions()).length;
+        this.document.getElementById('questionCount').innerText = `${currentQuestions}/${this.maxQuestions}`;
     }
 
     async selectLeft() {
