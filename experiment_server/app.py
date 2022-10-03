@@ -7,14 +7,26 @@ from typing import Final, Literal, Optional, Tuple
 import arrow
 import fs
 import numpy as np
-from flask import (Flask, g, jsonify, redirect, render_template, request,
-                   session, url_for)
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from remote_sqlite import RemoteSqlite  # type: ignore
 from werkzeug import Response
 
 from experiment_server.encoder import Encoder
-from experiment_server.query import (get_named_question, get_random_questions,
-                                     insert_question, insert_traj)
+from experiment_server.query import (
+    get_named_question,
+    get_random_questions,
+    insert_question,
+    insert_traj,
+)
 from experiment_server.remote_file_handler import remoteFileHanlderFactory
 from experiment_server.type import Answer, State, Trajectory, assure_modality
 from experiment_server.user_file import UserFile
@@ -86,9 +98,11 @@ def get_user_file() -> Optional[UserFile]:
 
 
 def redirect_missing_session(
-    current_page: Literal["welcome", "interact", "replay", "goodbye"]
+    current_page: Literal["welcome", "instructions", "interact", "replay", "goodbye"]
 ) -> Optional[Response]:
-    if "user_id" not in session.keys() and current_page != "welcome":
+    if (
+        "user_id" not in session.keys() or not session["consent"]
+    ) and current_page != "welcome":
         return redirect(url_for("welcome"))
     elif (user_file := get_user_file()) is not None:
         n_questions = len(user_file.get().get_used_questions())
@@ -134,12 +148,22 @@ def parse_answer(json) -> Answer:
 
 @app.route("/")
 def welcome():
+    if "consent" not in session.keys():
+        session["consent"] = False
     if (resp := redirect_missing_session("welcome")) is not None:
         return resp
     if "user_id" not in session.keys():
         session["user_id"] = create_user()
         session["payment_code"] = token_hex(16)
     return render_template("welcome.html")
+
+
+@app.route("/instructions")
+def instructions():
+    session["consent"] = True
+    if (resp := redirect_missing_session("instructions")) is not None:
+        return resp
+    return render_template("instructions.html")
 
 
 @app.route("/replay")
