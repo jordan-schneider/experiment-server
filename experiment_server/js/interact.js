@@ -1,6 +1,8 @@
-import { getAction, parseOpts } from './utils.js';
+import Timer from './timer.js';
+import { getAction, parseOpts, post } from './utils.js';
 
 const keyState = new Set();
+const timer = new Timer();
 
 function resetKeys() {
     keyState.clear();
@@ -31,6 +33,8 @@ async function main() {
 
     game.render();
 
+    timer.start();
+
     setInterval(() => {
         if (!realtime && keyState.size === 0) return;
 
@@ -42,4 +46,17 @@ async function main() {
     }, 1000 / 15);
 }
 
+async function reportTime() {
+    timer.stop();
+    await post(
+        '/interact_times',
+        JSON.stringify({
+            startTime: timer.startTime,
+            stopTime: timer.stopTime,
+        }),
+    );
+}
+
 main();
+
+window.reportTime = reportTime;

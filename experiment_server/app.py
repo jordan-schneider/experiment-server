@@ -7,26 +7,14 @@ from typing import Final, Literal, Optional, Tuple
 import arrow
 import fs
 import numpy as np
-from flask import (
-    Flask,
-    g,
-    jsonify,
-    redirect,
-    render_template,
-    request,
-    session,
-    url_for,
-)
+from flask import (Flask, g, jsonify, redirect, render_template, request,
+                   session, url_for)
 from remote_sqlite import RemoteSqlite  # type: ignore
 from werkzeug import Response
 
 from experiment_server.encoder import Encoder
-from experiment_server.query import (
-    get_named_question,
-    get_random_questions,
-    insert_question,
-    insert_traj,
-)
+from experiment_server.query import (get_named_question, get_random_questions,
+                                     insert_question, insert_traj)
 from experiment_server.remote_file_handler import remoteFileHanlderFactory
 from experiment_server.type import Answer, State, Trajectory, assure_modality
 from experiment_server.user_file import UserFile
@@ -198,6 +186,23 @@ def record():
 
 
 # API
+@app.route("/interact_times", methods=["POST"])
+def submit_interact_times():
+    if request.method != "POST":
+        return jsonify({"error": "Method not allowed"}), 405
+    json = request.get_json()
+    user_file = get_user_file()
+    if user_file is None:
+        return jsonify({"error": "User not found"}), 404
+    user = user_file.get()
+
+    user.interact_times = (
+        arrow.get(json["startTime"]).isoformat(),
+        arrow.get(json["stopTime"]).isoformat(),
+    )
+    user_file.write(user)
+
+    return jsonify({"success": True})
 
 
 @app.route("/submit_answer", methods=["POST"])

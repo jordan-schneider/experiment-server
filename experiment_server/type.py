@@ -67,6 +67,8 @@ class User:
     payment_code: str
     # [(quesiton_id, prefer_left)]
     responses: List[Answer]
+    # (start_time, stop_time)
+    interact_times: Optional[Tuple[str, str]] = None
 
     def get_used_questions(self) -> List[int]:
         return [r.question_id for r in self.responses]
@@ -77,4 +79,5 @@ class User:
             user_id=vals["user_id"],
             payment_code=vals["payment_code"],
             responses=[Answer(**r) for r in vals["responses"]],
+            interact_times=vals["interact_times"],
         )
