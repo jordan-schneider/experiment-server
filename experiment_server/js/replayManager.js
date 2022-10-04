@@ -109,7 +109,7 @@ class ReplayManager {
             return;
         }
 
-        this.submitPromise = this.submitAnswer(side, this.timer);
+        this.submitPromise = this.submitAnswer(side, this.timer, await this.gameManager.getMaxSteps());
 
         this.timer.reset();
 
@@ -118,7 +118,7 @@ class ReplayManager {
         this.nextQuestion();
     }
 
-    async submitAnswer(side, timer) {
+    async submitAnswer(side, timer, maxSteps) {
         await post(
             '/submit_answer',
             JSON.stringify({
@@ -126,6 +126,7 @@ class ReplayManager {
                 answer: side,
                 startTime: timer.startTime,
                 stopTime: timer.stopTime,
+                maxSteps,
             }),
         );
     }

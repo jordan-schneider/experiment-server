@@ -58,6 +58,7 @@ class Answer:
     answer: bool
     start_time: str
     end_time: str
+    max_steps: Tuple[int, int]
 
 
 @define()

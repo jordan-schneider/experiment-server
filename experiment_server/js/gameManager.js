@@ -9,6 +9,7 @@ class GameManager {
                 traj: null,
                 playState: 'paused',
                 time: 0,
+                maxTime: 0,
             }));
             setInterval(() => {
                 this._states = this._states.map(GameManager.checkStep);
@@ -47,6 +48,10 @@ class GameManager {
         return this._states;
     }
 
+    async getMaxSteps() {
+        return (await this.getGameStates()).map((state) => state.maxTime);
+    }
+
     async getGameState(side) {
         return (await this.getGameStates())[GameManager.getSideIndex(side)];
     }
@@ -70,6 +75,7 @@ class GameManager {
                 game.render();
                 outState.time += 1;
             }
+            outState.maxTime = Math.max(outState.maxTime, outState.time);
         }
         return outState;
     }
@@ -80,6 +86,7 @@ class GameManager {
             traj: trajs[i],
             playState: 'paused',
             time: 0,
+            maxTime: 0,
         }));
     }
 

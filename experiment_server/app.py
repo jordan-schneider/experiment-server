@@ -142,6 +142,7 @@ def parse_answer(json) -> Answer:
         answer=json["answer"] == "right",
         start_time=arrow.get(json["startTime"]).isoformat(),
         end_time=arrow.get(json["stopTime"]).isoformat(),
+        max_steps=tuple(json["maxSteps"]),
     )
 
 
