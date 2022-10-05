@@ -17,23 +17,32 @@ function listenForKeys() {
 
 async function main() {
     const div = document.getElementById('app');
+    const button = document.getElementById('start');
+
+    button.disabled = true;
+
     const opts = parseOpts();
     let realtime = false;
     if (opts.realtime !== undefined) {
         realtime = opts.realtime;
         delete opts.realtime;
     }
+
     // eslint-disable-next-line no-undef
     const game = await CheerpGame.init({
         ...CheerpGame.defaultOpts(), // eslint-disable-line no-undef
         ...opts,
     });
+    div.removeChild(div.firstChild);
     div.appendChild(game.getCanvas());
+
     listenForKeys();
 
     game.render();
 
     timer.start();
+
+    button.disabled = false;
 
     setInterval(() => {
         if (!realtime && keyState.size === 0) return;

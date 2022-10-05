@@ -57,8 +57,12 @@ class ReplayManager {
     }
 
     addGamesToDocument(games) {
-        this.document.getElementById('leftGame').appendChild(games[0].getCanvas());
-        this.document.getElementById('rightGame').appendChild(games[1].getCanvas());
+        const leftDiv = this.document.getElementById('leftGame');
+        leftDiv.removeChild(leftDiv.firstChild);
+        leftDiv.appendChild(games[0].getCanvas());
+        const rightDiv = this.document.getElementById('rightGame');
+        rightDiv.removeChild(rightDiv.firstChild);
+        rightDiv.appendChild(games[1].getCanvas());
         return games;
     }
 

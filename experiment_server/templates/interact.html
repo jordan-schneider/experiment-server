@@ -15,12 +15,12 @@
 		mine. Use the arrow keys on your keyboard to move around. When you're comfortable, hit the
 		start button to start giving the robot feedback.</p>
 
-	<div id="app"></div>
+	<div id="app"><img src="/assets/loading.gif"></div>
+
+	<button id="start" onclick="reportTime().then(() => location.href='{{ url_for('replay') }}')" class="btn btn-primary" type="button" disabled>Start</button>
 
 	<script src="/assets/env.js"></script>
 	<script src="/assets/interact.js"></script>
-
-	<button onclick="reportTime().then(() => location.href='{{ url_for('replay') }}')" class="btn btn-primary" type="button">Start</button>
 </body>
 
 </html>
