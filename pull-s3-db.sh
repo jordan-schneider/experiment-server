@@ -7,4 +7,4 @@ if ! [ -x "$(command -v aws)" ]; then
   ./aws/install --install-dir ~/.local/aws-cli --bin-dir ~/.local/bin
 fi
 
-aws s3 cp  s3://mrl-experiment-sqlite/experiments.db experiment_server/experiments.db
+aws s3 cp s3://mrl-experiment-sqlite/experiments.db experiment_server/experiments.db
