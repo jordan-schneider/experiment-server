@@ -1,12 +1,12 @@
 import { post } from './utils.js';
 
-export async function requestRandomQuestions({ env = 'miner', lengths = [], types = ['traj', 'traj'] } = {}) {
+export async function requestRandomQuestions({ env = 'miner', lengths = [], type = null } = {}) {
     return post(
         '/random_questions',
         JSON.stringify({
             env,
             lengths,
-            types,
+            type,
         }),
     ).then((resp) => resp.json());
 }

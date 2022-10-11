@@ -7,14 +7,26 @@ from typing import Final, Literal, Optional, Tuple
 import arrow
 import fs
 import numpy as np
-from flask import (Flask, g, jsonify, redirect, render_template, request,
-                   session, url_for)
+from flask import (
+    Flask,
+    g,
+    jsonify,
+    redirect,
+    render_template,
+    request,
+    session,
+    url_for,
+)
 from remote_sqlite import RemoteSqlite  # type: ignore
 from werkzeug import Response
 
 from experiment_server.encoder import Encoder
-from experiment_server.query import (get_named_question, get_random_questions,
-                                     insert_question, insert_traj)
+from experiment_server.query import (
+    get_named_question,
+    get_random_questions,
+    insert_question,
+    insert_traj,
+)
 from experiment_server.remote_file_handler import remoteFileHanlderFactory
 from experiment_server.type import Answer, State, Trajectory, assure_modality
 from experiment_server.user_file import UserFile
@@ -232,7 +244,7 @@ def request_random_questions():
 
     env = spec["env"]
     lengths = spec["lengths"]
-    modality = spec["types"][0]
+    modality = spec["type"]
     exclude_ids = user_file.get().get_used_questions()
 
     if len(lengths) > 0:

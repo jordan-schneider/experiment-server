@@ -37,9 +37,8 @@ FROM
         q.second_id=right.id
     WHERE
         {"left.length=:length AND right.length=:length AND" if length is not None else ""}
-        left.modality=:question_type
-        AND right.modality=:question_type
-        AND q.env=:env
+        {"left.modality=:question_type AND right.modality=:question_type AND" if question_type is not None else ""}
+        q.env=:env
         AND left.env=:env
         AND right.env=:env 
     ORDER BY RANDOM() LIMIT :n_questions;"""
