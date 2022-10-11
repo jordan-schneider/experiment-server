@@ -13,8 +13,12 @@ class GameManager {
             }));
             setInterval(() => {
                 this._states = this._states.map(GameManager.checkStep);
+                this.setTimers();
             }, this.tickLength);
         });
+
+        this.timers = [document.getElementById('leftTimer'), document.getElementById('rightTimer')];
+        this.setTimers();
 
         this.pause = this.pause.bind(this);
         this.pauseLeft = this.pauseLeft.bind(this);
@@ -56,6 +60,17 @@ class GameManager {
         return (await this.getGameStates())[GameManager.getSideIndex(side)];
     }
 
+    async setTimers() {
+        const states = await this.getGameStates();
+        const times = states.map((state) => state.time);
+        if (!states.some((state) => state.traj === undefined || state.traj === null)) {
+            const lengths = states.map((state) => state.traj.actions.length);
+            this.timers.forEach((timer, i) => {
+                timer.innerText = `${times[i]}/${lengths[i]}`;
+            });
+        }
+    }
+
     async setGameState(side, gameState) {
         if (this._states === undefined) {
             await this.gamePromise;
@@ -70,8 +85,8 @@ class GameManager {
             const { time } = state;
             const { actions } = state.traj;
             if (time < actions.length) {
-                const leftAction = actions[time];
-                game.step(leftAction);
+                const action = actions[time];
+                game.step(action);
                 game.render();
                 outState.time += 1;
             }
