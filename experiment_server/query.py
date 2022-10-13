@@ -3,6 +3,8 @@ import pickle
 import sqlite3
 from typing import List, Optional, Sequence, Tuple
 
+import numpy as np
+
 from experiment_server.type import DataModality, Question, QuestionAlgorithm, Trajectory
 
 
@@ -25,10 +27,12 @@ SELECT
     left.actions AS left_actions,
     left.length AS left_length,
     left.modality AS left_modality,
+    left.reason as left_reason,
     right.start_state AS right_start,
     right.actions AS right_actions,
     right.length AS right_length,
-    right.modality AS right_modality
+    right.modality AS right_modality,
+    right.reason as right_reason
 FROM 
     (SELECT * FROM questions {f"WHERE questions.id NOT IN ({excl_list})" if len(excl_list) > 0 else ""}) AS q
     LEFT JOIN trajectories AS left ON
@@ -64,10 +68,12 @@ FROM
         left_actions,
         left_length,
         left_modality,
+        left_reason,
         right_start,
         right_actions,
         right_length,
         right_modality,
+        right_reason,
     ) in cursor:
         questions.append(
             Question(
@@ -88,6 +94,12 @@ FROM
                 ),
             )
         )
+        if np.any(questions[-1].trajs[0].start_state.grid == 12) and np.any(
+            questions[-1].trajs[1].start_state.grid == 12
+        ):
+            logging.warning(
+                f"Both questions have a fire in them. Reasons: {left_reason}, {right_reason}"
+            )
     assert len(questions) == n_questions
     return questions
 
