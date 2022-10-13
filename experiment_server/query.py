@@ -155,7 +155,7 @@ FROM
 def insert_traj(conn: sqlite3.Connection, traj: Trajectory) -> int:
     # TODO: Swap pickle for dill
     cursor = conn.execute(
-        "INSERT INTO trajectories (start_state, actions, length, env, modality, reason) VALUES (:start_state, :actions, :length, :env, :modality, :reason)",
+        "INSERT INTO trajectories (start_state, actions, length, env, modality, reason, cstates) VALUES (:start_state, :actions, :length, :env, :modality, :reason, :cstates)",
         {
             "start_state": pickle.dumps(traj.start_state),
             "actions": pickle.dumps(traj.actions),
@@ -163,6 +163,7 @@ def insert_traj(conn: sqlite3.Connection, traj: Trajectory) -> int:
             "env": traj.env_name,
             "modality": traj.modality,
             "reason": traj.reason,
+            "cstates": pickle.dumps(traj.cstates),
         },
     )
     assert cursor.lastrowid is not None

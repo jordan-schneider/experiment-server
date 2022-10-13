@@ -39,6 +39,7 @@ class Trajectory:
     env_name: str
     modality: DataModality
     reason: Optional[str] = None
+    cstates: Optional[List[bytes]] = None
 
 
 @define(order=False, kw_only=True)
