@@ -76,8 +76,14 @@ class ReplayManager {
         const trajs = [leftTraj, rightTraj];
 
         const games = await this.getGames();
+
+        // Take an arbitrary action before setting the state to clear the died variable, which sometimes causes a reset
+        // immediately after the state is set.
+        // TODO: Fix this in the actual setState game code.
+        games[0].step(0);
         games[0].setState(leftTraj.start_state);
         games[0].render();
+        games[1].step(0);
         games[1].setState(rightTraj.start_state);
         games[1].render();
 
