@@ -89,6 +89,10 @@ class ReplayManager {
 
         this.gameManager.setTrajs(trajs);
         this.questionId = question.id;
+
+        if (trajs.some((traj) => traj.actions.length === 0)) {
+            this.timer.start();
+        }
         return trajs;
     }
 
