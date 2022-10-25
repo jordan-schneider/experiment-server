@@ -4,5 +4,4 @@ boto3[crt]
 numpy>=1.21
 flask
 gunicorn
-remote-sqlite
 attrs
