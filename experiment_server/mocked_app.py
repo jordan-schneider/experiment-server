@@ -7,6 +7,7 @@ from typing import Final, Literal, Optional, Tuple
 import arrow
 import fs
 import fs.base
+import fs.copy
 import numpy as np
 from flask import (
     Flask,
@@ -18,8 +19,11 @@ from flask import (
     session,
     url_for,
 )
+from fs_s3fs import S3FS  # type: ignore
+from moto import mock_s3  # type: ignore
 from werkzeug import Response
 
+from experiment_server.boto3_counter import AwsRequestPrices, Boto3Counter
 from experiment_server.encoder import Encoder
 from experiment_server.query import (
     get_named_question,
@@ -27,11 +31,29 @@ from experiment_server.query import (
     insert_question,
     insert_traj,
 )
+from experiment_server.remote_file_handler import remoteFileHanlderFactory
 from experiment_server.remote_sqlite import RemoteSqlite
 from experiment_server.type import Answer, State, Trajectory
 from experiment_server.user_file import UserFile
 
 MAX_QUESTIONS: Final[int] = 20
+
+os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+os.environ["AWS_SECURITY_TOKEN"] = "testing"
+os.environ["AWS_SESSION_TOKEN"] = "testing"
+os.environ["AWS_DEFAULT_REGION"] = "us-east-1"
+
+mock = mock_s3()
+mock.start()
+
+s3_fs: S3FS = S3FS(bucket_name="multimodal-reward-learning", region="us-east-1")
+s3_client = s3_fs.client
+fs.copy.copy_file(
+    fs.open_fs("osfs://./experiment_server"), "experiments.db", s3_fs, "experiments.db"
+)
+s3_client.create_bucket(Bucket="multimodal-reward-learning")
+request_counter = Boto3Counter(s3_client, prices=AwsRequestPrices(0.04, 0.5))
 
 
 def use_local() -> bool:
@@ -52,6 +74,12 @@ dictConfig(
                 "stream": "ext://flask.logging.wsgi_errors_stream",
                 "formatter": "default",
             },
+            "file": {
+                "()": remoteFileHanlderFactory,
+                "filesystem": fs.open_fs("osfs://."),  # if use_local() else s3_fs,
+                "filename": "experiment.log",
+                "formatter": "default",
+            },
         },
         "root": {"level": "INFO", "handlers": ["wsgi", "file"]},
     }
@@ -68,17 +96,14 @@ def get_db() -> RemoteSqlite:
         if (db_path := os.environ.get("DATABASE_PATH")) is not None:
             app.logger.info(f"Using local database at {db_path}")
             db = RemoteSqlite(
-                remote_fs=fs.open_fs(fs.path.dirname(db_path)),
-                filename=fs.path.basename(db_path),
+                fs.open_fs(fs.path.dirname(db_path)),
+                fs.path.basename(db_path),
                 always_download=True,
             )
+
         else:
             app.logger.info("Using s3 database")
-            db = RemoteSqlite(
-                remote_fs=fs.open_fs("s3://multimodal-reward-learning/"),
-                filename="experiments.db",
-                always_download=True,
-            )
+            db = RemoteSqlite(s3_fs, "experiments.db", always_download=True)
         g._database = db
     return db
 
@@ -90,11 +115,7 @@ def get_user_file() -> Optional[UserFile]:
         and "user_id" in session.keys()
         and "payment_code" in session.keys()
     ):
-        user_file = UserFile(
-            filesystem=get_user_fs(),
-            user_id=session["user_id"],
-            payment_code=session["payment_code"],
-        )
+        user_file = UserFile(get_user_fs(), session["user_id"], session["payment_code"])
         g._user_file = user_file
     return user_file
 
@@ -107,20 +128,32 @@ def redirect_missing_session(
         or "consent" not in session.keys()
         or not session["consent"]
     ) and current_page != "welcome":
+        print(
+            f"Request counts={request_counter.get_counts()}, total cost={request_counter.get_request_cost_cents()}"
+        )
         return redirect(url_for("welcome"))
     elif (user_file := get_user_file()) is not None:
         n_questions = len(user_file.get().get_used_questions())
         app.logger.info(f"current page: {current_page}, n_questions: {n_questions}")
         if n_questions > 0 and n_questions < MAX_QUESTIONS and current_page != "replay":
+            print(
+                f"Request counts={request_counter.get_counts()}, total cost={request_counter.get_request_cost_cents()}"
+            )
             return redirect(url_for("replay"))
         elif n_questions >= MAX_QUESTIONS and current_page != "goodbye":
+            print(
+                f"Request counts={request_counter.get_counts()}, total cost={request_counter.get_request_cost_cents()}"
+            )
             return redirect(url_for("goodbye"))
+    print(
+        f"Request counts={request_counter.get_counts()}, total cost={request_counter.get_request_cost_cents()}"
+    )
     return None
 
 
 def get_user_fs() -> fs.base.FS:
     return (
-        fs.open_fs("s3://multimodal-reward-learning/users/")
+        s3_fs
         if not use_local()
         else fs.open_fs(f"osfs://{os.environ['EXPERIMENT_DIR']}")
     )

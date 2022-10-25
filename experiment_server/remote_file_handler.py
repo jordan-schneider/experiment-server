@@ -1,49 +1,53 @@
 from logging import FileHandler
-from typing import Union
 
 import fs
+import fs.base
+import fs.copy
 
 
 class RemoteFileHandler(FileHandler):
     def __init__(
         self,
-        path: str,
+        filesystem: fs.base.FS,
+        filename: str,
         mode: str = "a",
         encoding=None,
         delay=False,
         localDir: str = "osfs:///tmp",
     ):
-        self.filename = fs.path.basename(path)
-        self.remoteDir = fs.path.dirname(path)
+        self.filename = filename
+        self.remote_fs = filesystem
         self.localDir = localDir
+        self.local_fs = fs.open_fs(self.localDir)
         super().__init__(
             fs.open_fs(self.localDir).getsyspath(self.filename), mode, encoding, delay
         )
         self.pull()
 
     def pull(self):
-        if fs.open_fs(self.remoteDir).exists(self.filename):
+        if self.remote_fs.exists(self.filename):
             fs.copy.copy_file_if_newer(
-                fs.open_fs(self.remoteDir),
+                self.remote_fs,
                 self.filename,
-                fs.open_fs(self.localDir),
+                self.local_fs,
                 self.filename,
             )
 
     def push(self):
         fs.copy.copy_file_if_newer(
-            fs.open_fs(self.localDir),
+            self.local_fs,
             self.filename,
-            fs.open_fs(self.remoteDir),
+            self.remote_fs,
             self.filename,
         )
 
 
 def remoteFileHanlderFactory(
-    path: str,
+    filesystem: fs.base.FS,
+    filename: str,
     mode: str = "a",
     encoding=None,
     delay=False,
     localDir: str = "osfs:///tmp",
 ) -> RemoteFileHandler:
-    return RemoteFileHandler(path, mode, encoding, delay, localDir)
+    return RemoteFileHandler(filesystem, filename, mode, encoding, delay, localDir)

@@ -7,6 +7,7 @@
   "scripts": {
     "build": "webpack",
     "deploy": ". experiment_server/SECRETS.sh && gunicorn experiment_server.app:app",
+    "mock-deploy": ". experiment_server/SECRETS.sh && gunicorn --preload experiment_server.mocked_app:app",
     "test": "jest"
   },
   "browserslist": [
