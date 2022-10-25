@@ -53,7 +53,7 @@ dictConfig(
                 "formatter": "default",
             },
         },
-        "root": {"level": "INFO", "handlers": ["wsgi", "file"]},
+        "root": {"level": "INFO", "handlers": ["wsgi"]},
     }
 )
 
