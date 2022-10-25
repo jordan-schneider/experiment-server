@@ -14,17 +14,19 @@ classifiers = [
 dependencies = [
     "arrow",
     "boto3[crt]",
-    "numpy >= 1.21",
     "flask",
+    "fs-s3fs",
+    "fs",
+    "numpy >= 1.21",
 ]
 
 [project.optional-dependencies]
 test = [
-  "pytest",
   "black",
+  "hypothesis",
   "mypy",
   "pylint",
-  "hypothesis",
+  "pytest",
 ]
 
 [project.urls]

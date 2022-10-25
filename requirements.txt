@@ -1,7 +1,9 @@
 # Just what you need for server deploy
 arrow
-boto3[crt]
-numpy>=1.21
-flask
-gunicorn
 attrs
+boto3[crt]
+flask
+fs
+fs-s3fs
+gunicorn
+numpy>=1.21
